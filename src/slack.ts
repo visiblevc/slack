@@ -1,7 +1,7 @@
 import * as core from '@actions/core'
 import * as github from '@actions/github'
-import {EventPayloads} from '@octokit/webhooks'
-import {IncomingWebhook, IncomingWebhookResult} from '@slack/webhook'
+import { EventPayloads } from '@octokit/webhooks'
+import { IncomingWebhook, IncomingWebhookResult } from '@slack/webhook'
 
 function jobColor(status: string): string | undefined {
   if (status.toLowerCase() === 'success') return 'good'
@@ -15,6 +15,15 @@ function stepIcon(status: string): string {
   if (status.toLowerCase() === 'cancelled') return ':exclamation:'
   if (status.toLowerCase() === 'skipped') return ':no_entry_sign:'
   return `:grey_question: ${status}`
+}
+
+function statusMessage(rawStatus: string): string | undefined {
+  let status = rawStatus;
+
+  if (rawStatus.toLowerCase() === 'success') status = 'succeeded'
+  if (rawStatus.toLowerCase() === 'failure') status = 'failed'
+
+  return `Build ${status}`;
 }
 
 async function send(
@@ -108,10 +117,11 @@ async function send(
   }
 
   const text = `${
-    `*<${workflowUrl}|Workflow _${workflow}_ ` +
-    `job _${jobName}_ triggered by _${eventName}_ is _${jobStatus}_>* ` +
-    `for <${refUrl}|\`${ref}\`>\n`
-  }${title ? `<${diffUrl}|\`${diffRef}\`> - ${title}` : ''}`
+    `*${statusMessage(jobStatus)}*\n` +
+    `<${workflowUrl}|${title}>\n\n` +
+    `*Branch*\n<${refUrl}|\`${diffRef}\` \`${ref}\`>\n\n` +
+    `*Commit*\n<${repositoryUrl}/commit/${shortSha}|${sha}>`
+  }`
 
   // add job steps, if provided
   const checks: string[] = []
